@@ -24,13 +24,16 @@ sio = socketio.Client()
 latest_message = None
 
 def start_socketio_client():
-    # ws_url = 'https://live.racefacer.com:3123/socket.io/'
-    ws_url = 'http://localhost:8080'
+    ws_url = 'https://live.racefacer.com:3123/socket.io/'
+    # ws_url = 'http://localhost:8080'
+    # ws_channel = 'kartarenacheb'
+    ws_channel = 'denizkarting'
+    min_lap_length_to_report = 30 # seconds
 
     @sio.event
     def connect():
         logging.info(f"Connection to ws server {ws_url} established")
-        sio.emit('join', 'kartarenacheb')
+        sio.emit('join', ws_channel)
 
     @sio.event
     def connect_error(data):
@@ -40,9 +43,9 @@ def start_socketio_client():
     def disconnect():
         logging.info(f"Disconnected from server {ws_url}")
 
-    @sio.event
-    def kartarenacheb(data):
-        logging.info(f"message received: kartarenacheb - {data}")
+    # @sio.event
+    def message(data):
+        logging.info(f"message received: {ws_channel} - {data}")
 
         results = []
         if 'runs' in data['data']:
@@ -60,9 +63,20 @@ def start_socketio_client():
 
         # get current timestamp in seconds
         current_timestamp = time.time()
+        current_timestamp_formatted = datetime.fromtimestamp(current_timestamp).strftime('%H:%M:%S')
 
         # Find results where the current_lap_start_timestamp is more than 60 seconds old
-        filtered_results = [result for result in results if current_timestamp - result['current_lap_start_timestamp'] > 60]
+        filtered_results = []
+        for result in results:
+            current_lap_start_timestamp_formatted = datetime.fromtimestamp(result['current_lap_start_timestamp']).strftime('%H:%M:%S')
+
+            diff = int(current_timestamp - result['current_lap_start_timestamp'])
+            minutes, seconds = divmod(diff, 60)
+            diff_formatted = f"{minutes:02}:{seconds:02}"
+
+            logging.info(f"Adding result:   kart {result['kart']}, {current_timestamp_formatted} - {current_lap_start_timestamp_formatted} = {diff_formatted} > {min_lap_length_to_report}")
+            result['diff_formatted'] = diff_formatted
+            filtered_results.append(result)
 
         # Sort the filtered results by the current_lap_start_timestamp in ascending order
         sorted_results = sorted(filtered_results, key=lambda x: x['current_lap_start_timestamp'])
@@ -80,6 +94,7 @@ def start_socketio_client():
     def any_event(event, sid, data):
         logging.info(f"event received: {event} - {sid} - {data}")
 
+    sio.on(ws_channel, message)
     sio.connect(ws_url)
     sio.wait()
 
@@ -92,6 +107,14 @@ def elapsed_time_filter(timestamp):
     elapsed = now - timestamp
     minutes, seconds = divmod(int(elapsed), 60)
     return f"{minutes:02d}:{seconds:02d}"
+
+
+@app.template_filter('format_time')
+def format_time_filter(timestamp):
+    if timestamp is None:
+        return "N/A"
+    formatted = datetime.fromtimestamp(timestamp).strftime('%H:%M:%S')
+    return f"{formatted}"
 
 
 @app.route("/")
