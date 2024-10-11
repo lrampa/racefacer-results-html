@@ -1,11 +1,9 @@
 <table id="kartTable">
     <thead>
         <tr>
-            <th>Kart</th>
-            <th>Elapsed Time</th>
-            <th>Last Time</th>
-            <th>Current Lap Start</th>
-            <th>Elapsed Time - Backend</th>
+            <th>Kára</th>
+            <th>Akt. kolo</th>
+            <th>Start akt. kola</th>
         </tr>
     </thead>
     <tbody>
@@ -16,30 +14,13 @@
                 <td data-timestamp="{{ item.current_lap_start_timestamp }}">
                     {{ item.current_lap_start_timestamp|elapsed_time }}
                 </td>
-                <td>{{ item.last_time }}</td>
                 <td>{{ item.current_lap_start_timestamp|format_time }}</td>
-                <td>{{ item.diff_formatted }}</td>
             </tr>
         {% endfor %}
     {% else %}
         <tr>
-            <td colspan="5">Waiting for data...</td>
+            <td colspan="3">Čekám na data...</td>
         </tr>
     {% endif %}
     </tbody>
 </table>
-
-<script>
-    function updateElapsedTimes() {
-        const now = Math.floor(Date.now() / 1000);
-        document.querySelectorAll('#kartTable td[data-timestamp]').forEach(td => {
-            const timestamp = parseInt(td.getAttribute('data-timestamp'));
-            const elapsed = now - timestamp;
-            const minutes = Math.floor(elapsed / 60);
-            const seconds = elapsed % 60;
-            td.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-        });
-    }
-    
-    setInterval(updateElapsedTimes, 1000);
-</script>
