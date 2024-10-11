@@ -9,8 +9,8 @@ from datetime import datetime
 
 ws_url = 'https://live.racefacer.com:3123/socket.io/'
 # ws_url = 'http://localhost:8080'
-# ws_channel = 'kartarenacheb'
-ws_channel = 'denizkarting'
+ws_channel = 'kartarenacheb'
+# ws_channel = 'denizkarting'
 
 
 logging.basicConfig(
