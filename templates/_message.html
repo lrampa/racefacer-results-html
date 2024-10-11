@@ -1,0 +1,39 @@
+<table id="kartTable">
+    <thead>
+        <tr>
+            <th>Kart</th>
+            <th>Elapsed Time</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% if message %}
+        {% for item in message %}
+            <tr>
+                <td>{{ item.kart }}</td>
+                <td data-timestamp="{{ item.current_lap_start_timestamp }}">
+                    {{ item.current_lap_start_timestamp|elapsed_time }}
+                </td>
+            </tr>
+        {% endfor %}
+    {% else %}
+        <tr>
+            <td colspan="2">No data available</td>
+        </tr>
+    {% endif %}
+    </tbody>
+</table>
+
+<script>
+    function updateElapsedTimes() {
+        const now = Math.floor(Date.now() / 1000);
+        document.querySelectorAll('#kartTable td[data-timestamp]').forEach(td => {
+            const timestamp = parseInt(td.getAttribute('data-timestamp'));
+            const elapsed = now - timestamp;
+            const minutes = Math.floor(elapsed / 60);
+            const seconds = elapsed % 60;
+            td.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        });
+    }
+    
+    setInterval(updateElapsedTimes, 1000);
+</script>

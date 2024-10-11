@@ -1,0 +1,14 @@
+<!doctype html>
+<head>
+    {{ turbo() }}
+</head>
+<body>
+<title>Hello from Flask</title>
+<div id="messages">
+  {% if message %}
+    {% include '_message.html' %}
+  {% else %}
+    <div>Waiting for messages...</div>
+  {% endif %}
+</div>
+<body>

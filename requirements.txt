@@ -1,0 +1,8 @@
+flask
+turbo_flask
+python-socketio
+python-socketio[client]
+requests
+websockets
+websocket-client
+flask_socketio
