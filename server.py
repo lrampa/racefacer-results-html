@@ -117,6 +117,15 @@ def process_data(data):
     if 'runs' in data['data']:
         # iterate over data['data']['runs'] and create a tuple for each run
         for run in data['data']['runs']:
+            # TODO *********************************************************************
+            # TODO *** Remove this part for races, where drivers has name filled in! ***
+            # TODO *********************************************************************
+            # If run.get('kart', '') (after removing whitespace at its beginning)
+            # does not begin with phrase 'kart' ignoring case, ignore the run
+            if not run.get('kart', '').lstrip().lower().startswith('kart'):
+                logging.info(f"Skipping run: {run.get('kart', '')}")
+                continue
+
             results.append({
                 'kart': run.get('kart', ''), # "kart": "18",
                 'total_laps': run.get('total_laps', ''), # "total_laps": 8,
