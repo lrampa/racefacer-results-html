@@ -118,7 +118,9 @@ def process_data(data):
         # iterate over data['data']['runs'] and create a tuple for each run
         for run in data['data']['runs']:
             # TODO *********************************************************************
-            # TODO *** Remove this part for races, where drivers has name filled in! ***
+            # TODO *** Remove this part for races, where drivers has name filled in!
+            # TODO *** This ignores results from inner electric track mixed in to race
+            # TODO *** results.
             # TODO *********************************************************************
             # If run.get('kart', '') (after removing whitespace at its beginning)
             # does not begin with phrase 'kart' ignoring case, ignore the run
