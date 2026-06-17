@@ -4,6 +4,8 @@ import threading
 import socketio
 import logging
 import time
+import json
+import os
 from datetime import datetime
 
 
@@ -27,6 +29,17 @@ turbo = Turbo(app)
 sio = socketio.Client()
 
 
+JSONL_LOG = os.path.join('socketio', 'socketio.log')
+os.makedirs('socketio', exist_ok=True)
+
+
+def write_jsonl(data):
+    record = {'log_ts': datetime.now().strftime('%Y-%m-%d %H:%M:%S,%f')[:-3]}
+    record['data'] = data.get('data', data) if isinstance(data, dict) else data
+    with open(JSONL_LOG, 'a') as f:
+        f.write(json.dumps(record, ensure_ascii=False) + '\n')
+
+
 # Global variable to store the latest message
 latest_message = None
 
@@ -48,6 +61,7 @@ def start_socketio_client():
     # @sio.event
     def message(data):
         logging.info(f"message received: {ws_channel} - {data}")
+        write_jsonl(data)
 
         sorted_results = process_data(data)
 
