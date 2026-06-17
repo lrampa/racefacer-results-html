@@ -42,3 +42,20 @@ Then open http://localhost:5000 in a browser.
 3. On every kart passing (any kart crosses the finish line), receives updated data
 4. Pushes updates to the browser via Turbo Streams (no page reload)
 5. Client-side JS updates elapsed times every second and manages highlight/blink logic
+
+## Post-race analysis
+
+During the race, every Socket.IO message is logged as JSONL to `socketio/socketio.log`. After the race, you can:
+
+**Convert to CSV** (denormalized — one row per kart per message):
+
+```bash
+cd socketio
+python3 convert-to-csv.py
+```
+
+**Generate a race summary** (lap times per kart, sorted by position):
+
+```bash
+python3 socketio/race-summary.py socketio/socketio.log
+```
