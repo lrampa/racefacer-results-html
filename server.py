@@ -5,7 +5,7 @@ import socketio
 import logging
 import time
 import json
-import os
+from pathlib import Path
 from datetime import datetime
 
 
@@ -17,70 +17,32 @@ RACEFACER_API_URL = 'https://live.racefacer.com/ajax/live-data'
 KART_NAME_PREFIX = 'kart'
 WS_THREAD_NAME = 'ws_client'
 DEBUG_LOG = 'socketio.log'
-JSONL_LOG = os.path.join('socketio', 'socketio.log')
+JSONL_LOG = Path('socketio') / 'socketio.log'
 
 
-logging.basicConfig(
-    filename=DEBUG_LOG,
-    format="%(asctime)s %(levelname)s %(message)s",
-    level=logging.DEBUG,
-)
+# App/runtime state, initialized by create_app()
+app: Flask | None = None
+turbo: Turbo | None = None
+sio: socketio.Client | None = None
+latest_message = None
 
 
-app = Flask(__name__)
-turbo = Turbo(app)
-
-sio = socketio.Client()
-
-os.makedirs('socketio', exist_ok=True)
+def configure_logging():
+    logging.basicConfig(
+        filename=DEBUG_LOG,
+        format="%(asctime)s %(levelname)s %(message)s",
+        level=logging.DEBUG,
+    )
 
 
 def write_jsonl(data):
     record = {'log_ts': datetime.now().strftime('%Y-%m-%d %H:%M:%S,%f')[:-3]}
     record['data'] = data.get('data', data) if isinstance(data, dict) else data
+    JSONL_LOG.parent.mkdir(parents=True, exist_ok=True)
     with open(JSONL_LOG, 'a') as f:
         f.write(json.dumps(record, ensure_ascii=False) + '\n')
 
 
-# Global variable to store the latest message
-latest_message = None
-
-def start_socketio_client():
-
-    @sio.event
-    def connect():
-        logging.info(f"Connection to ws server {WS_URL} established")
-        sio.emit('join', WS_CHANNEL)
-
-    @sio.event
-    def connect_error(data):
-        logging.error(f"Cannot connect to ws server {WS_URL}")
-        
-    @sio.event
-    def disconnect():
-        logging.info(f"Disconnected from server {WS_URL}")
-
-    def message(data):
-        logging.info(f"message received: {WS_CHANNEL} - {data}")
-        write_jsonl(data)
-
-        sorted_results = process_data(data)
-
-        global latest_message
-        latest_message = sorted_results
-        with app.app_context():
-            turbo.push(turbo.update(render_template('_message.html', message=latest_message), 'messages'))
-
-    @sio.on('*')
-    def any_event(event, sid, data):
-        logging.info(f"event received: {event} - {sid} - {data}")
-
-    sio.on(WS_CHANNEL, message)
-    sio.connect(WS_URL)
-    sio.wait()
-
-
-@app.template_filter('elapsed_time')
 def elapsed_time_filter(timestamp):
     if timestamp is None:
         return "N/A"
@@ -90,30 +52,12 @@ def elapsed_time_filter(timestamp):
     return f"{minutes:02d}:{seconds:02d}"
 
 
-@app.template_filter('format_time')
 def format_time_filter(timestamp):
     if timestamp is None:
         return "N/A"
     formatted = datetime.fromtimestamp(timestamp).strftime('%H:%M:%S')
     return f"{formatted}"
 
-
-@app.route("/")
-def index():    
-    threads = threading.enumerate()
-    if not any(thread.name == WS_THREAD_NAME for thread in threads):
-        logging.debug('before thread start')
-        thread = threading.Thread(name=WS_THREAD_NAME, target=start_socketio_client)
-        thread.daemon = True
-        thread.start()
-        logging.debug('after thread start')
-
-    data = fetch_data()
-    results = process_data(data)
-    global latest_message
-    latest_message = results
-
-    return render_template('index.html', message=latest_message)
 
 def fetch_data():
     import requests
@@ -166,9 +110,78 @@ def process_data(data):
 
     for result in sorted_results:
         logging.info(f"kart: {result['kart']}, total_laps: {result['total_laps']}, last_time: {result['last_time']}, last_time_raw: {result['last_time_raw']}, last_passing: {result['last_passing']}, current_lap_start_timestamp: {result['current_lap_start_timestamp']}, current_lap_start_microtimestamp: {result['current_lap_start_microtimestamp']}")
-    
+
     return sorted_results
 
 
+def start_socketio_client():
+
+    @sio.event
+    def connect():
+        logging.info(f"Connection to ws server {WS_URL} established")
+        sio.emit('join', WS_CHANNEL)
+
+    @sio.event
+    def connect_error(data):
+        logging.error(f"Cannot connect to ws server {WS_URL}")
+
+    @sio.event
+    def disconnect():
+        logging.info(f"Disconnected from server {WS_URL}")
+
+    def message(data):
+        logging.info(f"message received: {WS_CHANNEL} - {data}")
+        write_jsonl(data)
+
+        sorted_results = process_data(data)
+
+        global latest_message
+        latest_message = sorted_results
+        with app.app_context():
+            turbo.push(turbo.update(render_template('_message.html', message=latest_message), 'messages'))
+
+    @sio.on('*')
+    def any_event(event, sid, data):
+        logging.info(f"event received: {event} - {sid} - {data}")
+
+    sio.on(WS_CHANNEL, message)
+    sio.connect(WS_URL)
+    sio.wait()
+
+
+def index():
+    threads = threading.enumerate()
+    if not any(thread.name == WS_THREAD_NAME for thread in threads):
+        logging.debug('before thread start')
+        thread = threading.Thread(name=WS_THREAD_NAME, target=start_socketio_client)
+        thread.daemon = True
+        thread.start()
+        logging.debug('after thread start')
+
+    data = fetch_data()
+    results = process_data(data)
+    global latest_message
+    latest_message = results
+
+    return render_template('index.html', message=latest_message)
+
+
+def create_app():
+    """Application factory: wire up Flask, Turbo, the Socket.IO client and routes."""
+    global app, turbo, sio
+
+    configure_logging()
+
+    app = Flask(__name__)
+    turbo = Turbo(app)
+    sio = socketio.Client()
+
+    app.add_template_filter(elapsed_time_filter, 'elapsed_time')
+    app.add_template_filter(format_time_filter, 'format_time')
+    app.add_url_rule('/', 'index', index)
+
+    return app
+
+
 if __name__ == '__main__':
-    app.run()
+    create_app().run()

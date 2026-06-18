@@ -1,0 +1,22 @@
+[project]
+name = "racefacer-results-html"
+version = "0.1.0"
+description = "Live karting race pit-stop timer display, fed by RaceFacer Socket.IO."
+requires-python = ">=3.11"
+dependencies = [
+    "flask",
+    "turbo-flask",
+    "python-socketio[client]",
+    "requests",
+    "websocket-client",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest",
+    "aiohttp",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
