@@ -10,7 +10,7 @@
           background-color: #000;
           color: #fff;
           margin: 0;
-          padding: 35px 20px 20px; /* Increased top padding to make room for the clock */
+          padding: 35px 20px 20px;
       }
       table {
           width: 100%;
@@ -44,61 +44,21 @@
           color: #000;
       }
       #clock {
-          position: fixed; /* Changed from absolute to fixed */
+          position: fixed;
           top: 5px;
           right: 20px;
-          /* font-size: 24px; */
           color: #ff6600;
-          background-color: #000; /* Added background color */
-          padding: 5px; /* Added padding */
+          background-color: #000;
+          padding: 5px;
       }
   </style>
   {{ turbo() }}
 </head>
-
 <body>
   <div id="clock"></div>
   <div id="messages">
   {% include '_message.html' %}
   </div>
-
-  <script>
-    function updateElapsedTimes() {
-        const now = Math.floor(Date.now() / 1000);
-        let highlighted = false;
-        document.querySelectorAll('#kartTable tbody tr').forEach(tr => {
-            const td = tr.querySelector('td[data-timestamp]');
-            if (!td) return;
-            const timestamp = parseInt(td.getAttribute('data-timestamp'));
-            const elapsed = now - timestamp;
-            const minutes = Math.floor(elapsed / 60);
-            const seconds = elapsed % 60;
-            td.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-
-            tr.classList.remove('highlight');
-            if (!highlighted && elapsed >= 180) {
-                highlighted = true;
-                tr.classList.add('highlight');
-            }
-            const prev = parseInt(td.getAttribute('data-prev-elapsed') || '0');
-            if (prev < 180 && elapsed >= 180) {
-                tr.classList.add('blink');
-                setTimeout(() => tr.classList.remove('blink'), 1000);
-            }
-            td.setAttribute('data-prev-elapsed', elapsed);
-        });
-    }
-    
-    function updateClock() {
-        const now = new Date();
-        const hours = now.getHours().toString().padStart(2, '0');
-        const minutes = now.getMinutes().toString().padStart(2, '0');
-        const seconds = now.getSeconds().toString().padStart(2, '0');
-        document.getElementById('clock').textContent = `${hours}:${minutes}:${seconds}`;
-    }
-
-    setInterval(updateElapsedTimes, 1000);
-    setInterval(updateClock, 1000);
-    updateClock(); // Initial call to display the clock immediately
-    </script>
-  <body>
+  <script src="{{ url_for('static', filename='race.js') }}"></script>
+</body>
+</html>
