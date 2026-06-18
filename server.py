@@ -43,10 +43,11 @@ def write_jsonl(data):
         f.write(json.dumps(record, ensure_ascii=False) + '\n')
 
 
-def elapsed_time_filter(timestamp):
+def elapsed_time_filter(timestamp, now=None):
     if timestamp is None:
         return "N/A"
-    now = datetime.now().timestamp()
+    if now is None:
+        now = datetime.now().timestamp()
     elapsed = now - timestamp
     minutes, seconds = divmod(int(elapsed), 60)
     return f"{minutes:02d}:{seconds:02d}"
@@ -67,7 +68,7 @@ def fetch_data():
     return data
 
 
-def process_data(data):
+def process_data(data, now=None):
     results = []
 
     if 'runs' in data['data']:
@@ -91,7 +92,7 @@ def process_data(data):
                 'current_lap_start_microtimestamp': run.get('current_lap_start_microtimestamp', -1),
             })
 
-    current_timestamp = time.time()
+    current_timestamp = now if now is not None else time.time()
     current_timestamp_formatted = datetime.fromtimestamp(current_timestamp).strftime('%H:%M:%S')
 
     filtered_results = []
