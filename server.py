@@ -133,9 +133,9 @@ def process_data(data):
             # TODO *** This ignores results from inner electric track mixed in to race
             # TODO *** results.
             # TODO *********************************************************************
-            if not run.get('kart', '').lstrip().lower().startswith(KART_NAME_PREFIX):
-                logging.info(f"Skipping run: {run.get('kart', '')}")
-                continue
+            # if not run.get('kart', '').lstrip().lower().startswith(KART_NAME_PREFIX):
+            #     logging.info(f"Skipping run: {run.get('kart', '')}")
+            #     continue
 
             results.append({
                 'kart': run.get('kart', ''),
