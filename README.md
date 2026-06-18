@@ -67,6 +67,19 @@ python3 tools/race_summary.py socketio/socketio.log
 server.py              Flask app + Socket.IO client
 templates/             Jinja2 templates for the live display
 tools/                 Post-race analysis scripts
-tests/                 Mock WS server and fixtures
+tests/                 Unit tests, mock WS server, and fixtures
 socketio/              Race data output (gitignored)
 ```
+
+## Running tests
+
+Install the test dependencies (uses the `test` extra in `pyproject.toml`) and run pytest:
+
+```bash
+uv pip install -e ".[test]"
+pytest
+```
+
+The suite covers the core logic in `server.py` (`process_data`, the Jinja
+template filters, `write_jsonl`, and the `create_app` factory). UI/end-to-end
+tests are not included yet.
