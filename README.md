@@ -77,9 +77,11 @@ Install the test dependencies (uses the `test` extra in `pyproject.toml`) and ru
 
 ```bash
 uv pip install -e ".[test]"
+playwright install chromium
 pytest
 ```
 
 The suite covers the core logic in `server.py` (`process_data`, the Jinja
-template filters, `write_jsonl`, and the `create_app` factory). UI/end-to-end
-tests are not included yet.
+template filters, `write_jsonl`, and the `create_app` factory) plus UI/component
+tests for the client-side JavaScript (elapsed-time formatting, highlight rule,
+blink rule) using Playwright with fake timers.
