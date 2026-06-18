@@ -9,15 +9,19 @@ import os
 from datetime import datetime
 
 
-ws_url = 'https://live.racefacer.com:3123/socket.io/'
-# ws_url = 'http://localhost:8080'
-ws_channel = 'kartarenacheb'
-# ws_channel = 'denizkarting'
+WS_URL = 'https://live.racefacer.com:3123/socket.io/'
+# WS_URL = 'http://localhost:8080'
+WS_CHANNEL = 'kartarenacheb'
+# WS_CHANNEL = 'denizkarting'
+RACEFACER_API_URL = 'https://live.racefacer.com/ajax/live-data'
+KART_NAME_PREFIX = 'kart'
+WS_THREAD_NAME = 'ws_client'
+DEBUG_LOG = 'socketio.log'
+JSONL_LOG = os.path.join('socketio', 'socketio.log')
 
 
 logging.basicConfig(
-    filename="socketio.log",
-    # format="%(asctime)s %(levelname)s %(name)s %(message)s",
+    filename=DEBUG_LOG,
     format="%(asctime)s %(levelname)s %(message)s",
     level=logging.DEBUG,
 )
@@ -28,8 +32,6 @@ turbo = Turbo(app)
 
 sio = socketio.Client()
 
-
-JSONL_LOG = os.path.join('socketio', 'socketio.log')
 os.makedirs('socketio', exist_ok=True)
 
 
@@ -47,20 +49,19 @@ def start_socketio_client():
 
     @sio.event
     def connect():
-        logging.info(f"Connection to ws server {ws_url} established")
-        sio.emit('join', ws_channel)
+        logging.info(f"Connection to ws server {WS_URL} established")
+        sio.emit('join', WS_CHANNEL)
 
     @sio.event
     def connect_error(data):
-        logging.error(f"Cannot connect to ws server {ws_url}")
+        logging.error(f"Cannot connect to ws server {WS_URL}")
         
     @sio.event
     def disconnect():
-        logging.info(f"Disconnected from server {ws_url}")
+        logging.info(f"Disconnected from server {WS_URL}")
 
-    # @sio.event
     def message(data):
-        logging.info(f"message received: {ws_channel} - {data}")
+        logging.info(f"message received: {WS_CHANNEL} - {data}")
         write_jsonl(data)
 
         sorted_results = process_data(data)
@@ -74,8 +75,8 @@ def start_socketio_client():
     def any_event(event, sid, data):
         logging.info(f"event received: {event} - {sid} - {data}")
 
-    sio.on(ws_channel, message)
-    sio.connect(ws_url)
+    sio.on(WS_CHANNEL, message)
+    sio.connect(WS_URL)
     sio.wait()
 
 
@@ -99,11 +100,10 @@ def format_time_filter(timestamp):
 
 @app.route("/")
 def index():    
-    # Find out, if thread named "ws_client" exists
     threads = threading.enumerate()
-    if not any(thread.name == "ws_client" for thread in threads):
+    if not any(thread.name == WS_THREAD_NAME for thread in threads):
         logging.debug('before thread start')
-        thread = threading.Thread(name="ws_client", target=start_socketio_client)
+        thread = threading.Thread(name=WS_THREAD_NAME, target=start_socketio_client)
         thread.daemon = True
         thread.start()
         logging.debug('after thread start')
@@ -111,15 +111,13 @@ def index():
     data = fetch_data()
     results = process_data(data)
     global latest_message
-    latest_message = results  # Reset the message when the page is loaded
+    latest_message = results
 
     return render_template('index.html', message=latest_message)
 
 def fetch_data():
-    # Fetch json response from https://live.racefacer.com/ajax/live-data?slug=denizkarting
     import requests
-    import json
-    url = f"https://live.racefacer.com/ajax/live-data?slug={ws_channel}"
+    url = f"{RACEFACER_API_URL}?slug={WS_CHANNEL}"
     response = requests.get(url)
     data = json.loads(response.text)
     return data
@@ -129,34 +127,29 @@ def process_data(data):
     results = []
 
     if 'runs' in data['data']:
-        # iterate over data['data']['runs'] and create a tuple for each run
         for run in data['data']['runs']:
             # TODO *********************************************************************
             # TODO *** Remove this part for races, where drivers has name filled in!
             # TODO *** This ignores results from inner electric track mixed in to race
             # TODO *** results.
             # TODO *********************************************************************
-            # If run.get('kart', '') (after removing whitespace at its beginning)
-            # does not begin with phrase 'kart' ignoring case, ignore the run
-            if not run.get('kart', '').lstrip().lower().startswith('kart'):
+            if not run.get('kart', '').lstrip().lower().startswith(KART_NAME_PREFIX):
                 logging.info(f"Skipping run: {run.get('kart', '')}")
                 continue
 
             results.append({
-                'kart': run.get('kart', ''), # "kart": "18",
-                'total_laps': run.get('total_laps', ''), # "total_laps": 8,
-                'last_time': run.get('last_time', 0), # "last_time": "1:10.574",
-                'last_time_raw': run.get('last_time_raw', 0), # "last_time_raw": 70574,
-                'last_passing': run.get('last_passing', 0), # "last_passing": 1721900723855,
-                'current_lap_start_timestamp': run.get('current_lap_start_timestamp', -1), # "current_lap_start_timestamp": 1721900755,
-                'current_lap_start_microtimestamp': run.get('current_lap_start_microtimestamp', -1) # "current_lap_start_microtimestamp": 1721900726428,
+                'kart': run.get('kart', ''),
+                'total_laps': run.get('total_laps', ''),
+                'last_time': run.get('last_time', 0),
+                'last_time_raw': run.get('last_time_raw', 0),
+                'last_passing': run.get('last_passing', 0),
+                'current_lap_start_timestamp': run.get('current_lap_start_timestamp', -1),
+                'current_lap_start_microtimestamp': run.get('current_lap_start_microtimestamp', -1),
             })
 
-    # get current timestamp in seconds
     current_timestamp = time.time()
     current_timestamp_formatted = datetime.fromtimestamp(current_timestamp).strftime('%H:%M:%S')
 
-    # Find results where the current_lap_start_timestamp is more than 60 seconds old
     filtered_results = []
     for result in results:
         current_lap_start_timestamp_formatted = datetime.fromtimestamp(result['current_lap_start_timestamp']).strftime('%H:%M:%S')
@@ -169,10 +162,8 @@ def process_data(data):
         result['diff_formatted'] = diff_formatted
         filtered_results.append(result)
 
-    # Sort the filtered results by the current_lap_start_timestamp in ascending order
     sorted_results = sorted(filtered_results, key=lambda x: x['current_lap_start_timestamp'])
 
-    # Print the sorted results
     for result in sorted_results:
         logging.info(f"kart: {result['kart']}, total_laps: {result['total_laps']}, last_time: {result['last_time']}, last_time_raw: {result['last_time_raw']}, last_passing: {result['last_passing']}, current_lap_start_timestamp: {result['current_lap_start_timestamp']}, current_lap_start_microtimestamp: {result['current_lap_start_microtimestamp']}")
     
