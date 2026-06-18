@@ -1,76 +1,66 @@
-"""Tests for the blink rule: each row blinks when it individually crosses 180s."""
+"""Tests for the flash rule: each row gets .flash for 2s when crossing 180s, then .released."""
 
 from tests.ui.conftest import inject_rows
 
 
-def test_blink_on_crossing_180(ui_page):
-    """Row gains .blink when crossing from <180 to >=180."""
+def test_flash_on_crossing_180(ui_page):
+    """Row gains .flash when crossing from <180 to >=180."""
     inject_rows(ui_page, [{"kart": "kart 1", "timestamp": 0}])
-    # Advance to 179s — not yet crossing.
     ui_page.clock.fast_forward(179 * 1000)
     row = ui_page.locator("#kartTable tbody tr").first
-    assert "blink" not in (row.get_attribute("class") or "")
+    assert "flash" not in (row.get_attribute("class") or "")
 
-    # Advance 1 more second → elapsed=180, crosses threshold.
     ui_page.clock.fast_forward(1000)
-    assert "blink" in row.get_attribute("class")
+    assert "flash" in row.get_attribute("class")
 
 
-def test_blink_removed_after_1000ms(ui_page):
-    """The .blink class is removed after the setTimeout(1000) fires."""
+def test_flash_replaced_by_released(ui_page):
+    """After 2s the .flash is removed and .released is added."""
     inject_rows(ui_page, [{"kart": "kart 1", "timestamp": 0}])
-    # Cross the threshold.
     ui_page.clock.fast_forward(180 * 1000)
     row = ui_page.locator("#kartTable tbody tr").first
-    assert "blink" in row.get_attribute("class")
+    assert "flash" in row.get_attribute("class")
 
-    # Advance enough for the setTimeout(1000) to fire.
-    ui_page.clock.fast_forward(1000)
-    assert "blink" not in (row.get_attribute("class") or "")
+    ui_page.clock.fast_forward(2000)
+    cls = row.get_attribute("class") or ""
+    assert "flash" not in cls
+    assert "released" in cls
 
 
-def test_no_reblink_on_subsequent_ticks(ui_page):
-    """A row that's already >= 180 does not re-blink on the next interval tick."""
+def test_no_reflash_on_subsequent_ticks(ui_page):
+    """A row that's already >= 180 does not re-flash on the next interval tick."""
     inject_rows(ui_page, [{"kart": "kart 1", "timestamp": 0}])
-    # Cross threshold and wait for blink to be removed.
     ui_page.clock.fast_forward(180 * 1000)
-    ui_page.clock.fast_forward(1000)  # blink removal timeout fires
+    ui_page.clock.fast_forward(2000)  # flash -> released
     row = ui_page.locator("#kartTable tbody tr").first
-    assert "blink" not in (row.get_attribute("class") or "")
+    assert "released" in row.get_attribute("class")
 
-    # Next interval tick (1s later) — should NOT re-add blink.
     ui_page.clock.fast_forward(1000)
-    assert "blink" not in (row.get_attribute("class") or "")
+    cls = row.get_attribute("class") or ""
+    assert "flash" not in cls
+    assert "released" in cls
 
 
-def test_simultaneous_crossing_both_blink(ui_page):
-    """Two rows crossing 180 in the same tick: both get .blink, only first .highlight."""
-    # Both karts started at timestamp 0.
+def test_simultaneous_crossing_both_flash(ui_page):
+    """Two rows crossing 180 in the same tick: both get .flash."""
     inject_rows(ui_page, [
         {"kart": "kart 1", "timestamp": 0},
         {"kart": "kart 2", "timestamp": 0},
     ])
-    # Advance to 180s — both cross simultaneously.
     ui_page.clock.fast_forward(180 * 1000)
 
     rows = ui_page.locator("#kartTable tbody tr")
-    # Both blink.
-    assert "blink" in rows.nth(0).get_attribute("class")
-    assert "blink" in rows.nth(1).get_attribute("class")
-    # Only first is highlighted.
-    assert "highlight" in rows.nth(0).get_attribute("class")
-    assert "highlight" not in (rows.nth(1).get_attribute("class") or "")
+    assert "flash" in rows.nth(0).get_attribute("class")
+    assert "flash" in rows.nth(1).get_attribute("class")
 
 
-def test_readded_row_blinks_again(ui_page):
-    """A row removed and re-added with a fresh timestamp blinks on crossing 180 again."""
+def test_readded_row_flashes_again(ui_page):
+    """A row removed and re-added with a fresh timestamp flashes on crossing 180 again."""
     inject_rows(ui_page, [{"kart": "kart 1", "timestamp": 0}])
-    # Cross threshold, let blink expire.
     ui_page.clock.fast_forward(180 * 1000)
-    ui_page.clock.fast_forward(1000)
+    ui_page.clock.fast_forward(2000)  # flash -> released
 
-    # Remove and re-add the row with a new timestamp (simulating a new pit stop).
-    # New timestamp: current clock time (181s) — so elapsed starts at 0.
+    # Re-add row with new timestamp (simulating new pit stop)
     ui_page.evaluate("""() => {
         const tbody = document.querySelector('#kartTable tbody');
         tbody.innerHTML = '';
@@ -78,16 +68,14 @@ def test_readded_row_blinks_again(ui_page):
         const td1 = document.createElement('td');
         td1.textContent = 'kart 1';
         const td2 = document.createElement('td');
-        td2.setAttribute('data-timestamp', '181');
+        td2.setAttribute('data-timestamp', '182');
         td2.textContent = '00:00';
         tr.appendChild(td1);
         tr.appendChild(td2);
         tbody.appendChild(tr);
     }""")
 
-    # Advance to when this new row crosses 180 (181 + 180 = 361s total clock).
-    # Current clock is at 181s (180+1). Need to advance another 180s.
+    # Advance to cross 180 again (182 + 180 = 362s total)
     ui_page.clock.fast_forward(180 * 1000)
-
     row = ui_page.locator("#kartTable tbody tr").first
-    assert "blink" in row.get_attribute("class")
+    assert "flash" in row.get_attribute("class")

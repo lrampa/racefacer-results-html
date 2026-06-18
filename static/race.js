@@ -1,6 +1,5 @@
 function updateElapsedTimes() {
     const now = Math.floor(Date.now() / 1000);
-    let highlighted = false;
     document.querySelectorAll('#kartTable tbody tr').forEach(tr => {
         const td = tr.querySelector('td[data-timestamp]');
         if (!td) return;
@@ -10,15 +9,13 @@ function updateElapsedTimes() {
         const seconds = elapsed % 60;
         td.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 
-        tr.classList.remove('highlight');
-        if (!highlighted && elapsed >= 180) {
-            highlighted = true;
-            tr.classList.add('highlight');
-        }
         const prev = parseInt(td.getAttribute('data-prev-elapsed') || '0');
         if (prev < 180 && elapsed >= 180) {
-            tr.classList.add('blink');
-            setTimeout(() => tr.classList.remove('blink'), 1000);
+            tr.classList.add('flash');
+            setTimeout(() => {
+                tr.classList.remove('flash');
+                tr.classList.add('released');
+            }, 2000);
         }
         td.setAttribute('data-prev-elapsed', elapsed);
     });

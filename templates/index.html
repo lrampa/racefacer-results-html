@@ -31,17 +31,13 @@
       tr:hover {
           background-color: #222;
       }
-      tr.highlight {
+      tr.flash {
           background-color: #ff6600 !important;
           color: #000;
       }
-      @keyframes blink {
-          0%, 100% { background-color: #ff6600; }
-          50% { background-color: #fff; }
-      }
-      tr.blink {
-          animation: blink 0.2s 5;
-          color: #000;
+      tr.released {
+          background-color: #1a3a1a !important;
+          color: #4a4;
       }
       #clock {
           position: fixed;
