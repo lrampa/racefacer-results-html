@@ -3,16 +3,16 @@ import asyncio
 from aiohttp import web
 import datetime
 import json
+from pathlib import Path
 
 sio = socketio.AsyncServer(cors_allowed_origins='*')
 app = web.Application()
 sio.attach(app)
 
-# Read content of test-message.json file to a string
-with open('test-message.json', 'r') as file:
-    message = file.read()
-    # convert to json
-    message = json.loads(message)
+# Read content of the sample message fixture into a JSON object
+fixture_path = Path(__file__).parent / 'fixtures' / 'sample_message.json'
+with open(fixture_path, 'r') as file:
+    message = json.loads(file.read())
 
 @sio.event
 async def connect(sid, environ):

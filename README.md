@@ -50,12 +50,23 @@ During the race, every Socket.IO message is logged as JSONL to `socketio/socketi
 **Convert to CSV** (denormalized — one row per kart per message):
 
 ```bash
-cd socketio
-python3 convert-to-csv.py
+python3 tools/convert_to_csv.py [input.log] [output.csv]
 ```
+
+Defaults to `socketio/socketio.log` → `socketio/race_data_denormalized.csv`.
 
 **Generate a race summary** (lap times per kart, sorted by position):
 
 ```bash
-python3 socketio/race-summary.py socketio/socketio.log
+python3 tools/race_summary.py socketio/socketio.log
+```
+
+## Project layout
+
+```
+server.py              Flask app + Socket.IO client
+templates/             Jinja2 templates for the live display
+tools/                 Post-race analysis scripts
+tests/                 Mock WS server and fixtures
+socketio/              Race data output (gitignored)
 ```
