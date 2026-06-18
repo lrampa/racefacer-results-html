@@ -15,12 +15,13 @@ def sample_message():
         return json.load(f)
 
 
-@pytest.fixture
+@pytest.fixture(autouse=True)
 def reset_app(monkeypatch, tmp_path):
-    """Isolate tests that call create_app().
+    """Isolate every test from create_app()'s global side effects.
 
-    Resets the module-level globals create_app() mutates and redirects the
-    debug log to a temp path so no socketio.log is created in the project root.
+    Autouse so ordering can never leak state: resets the module-level globals
+    create_app() mutates and redirects the debug log to a temp path so no
+    socketio.log is created in the project root.
     """
     monkeypatch.setattr(server, "DEBUG_LOG", str(tmp_path / "debug.log"))
     yield

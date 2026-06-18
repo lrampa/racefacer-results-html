@@ -39,6 +39,14 @@ class TestMapping:
         assert result["current_lap_start_timestamp"] == -1
         assert result["current_lap_start_microtimestamp"] == -1
 
+    def test_default_lap_start_timestamp_diff(self):
+        # Real scenario: a kart that hasn't started a lap yet defaults
+        # current_lap_start_timestamp to -1. diff = now - (-1).
+        # now=1000 -> 1001s -> divmod(1001, 60) == (16, 41) -> "16:41".
+        data = make_data([{"kart": "kart 7"}])
+        result = process_data(data, now=1000)[0]
+        assert result["diff_formatted"] == "16:41"
+
 
 class TestEdgeCases:
     def test_no_runs_key_returns_empty(self):

@@ -23,8 +23,10 @@ class TestElapsedTimeFilter:
         assert elapsed_time_filter(timestamp, now=now) == expected
 
     def test_future_timestamp_negative_behavior(self):
-        # Current (documented) behavior: future timestamp yields negative divmod.
-        # now=100, timestamp=200 -> elapsed=-100 -> divmod(-100, 60) == (-2, 20)
+        # Characterization test: documents CURRENT (not desired) behavior.
+        # A future timestamp yields a negative divmod result rather than being
+        # clamped. now=100, timestamp=200 -> elapsed=-100 -> divmod(-100, 60)
+        # == (-2, 20) -> "-2:20". Update this if the behavior is ever fixed.
         assert elapsed_time_filter(200, now=100) == "-2:20"
 
 
