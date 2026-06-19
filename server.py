@@ -16,6 +16,7 @@ WS_CHANNEL = 'kartarenacheb'
 RACEFACER_API_URL = 'https://live.racefacer.com/ajax/live-data'
 KART_NAME_PREFIX = 'kart'
 WS_THREAD_NAME = 'ws_client'
+MIN_LAP_SECONDS = 70
 DEBUG_LOG = 'socketio.log'
 JSONL_LOG = Path('socketio') / 'socketio.log'
 
@@ -100,6 +101,8 @@ def process_data(data, now=None):
         current_lap_start_timestamp_formatted = datetime.fromtimestamp(result['current_lap_start_timestamp']).strftime('%H:%M:%S')
 
         diff = int(current_timestamp - result['current_lap_start_timestamp'])
+        if diff < MIN_LAP_SECONDS:
+            continue
         minutes, seconds = divmod(diff, 60)
         diff_formatted = f"{minutes:02}:{seconds:02}"
 
