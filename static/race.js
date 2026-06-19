@@ -4,7 +4,7 @@ function updateElapsedTimes() {
         const td = tr.querySelector('td[data-timestamp]');
         if (!td) return;
         const timestamp = parseInt(td.getAttribute('data-timestamp'));
-        const elapsed = now - timestamp;
+        const elapsed = Math.max(0, now - timestamp);
         const minutes = Math.floor(elapsed / 60);
         const seconds = elapsed % 60;
         td.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;

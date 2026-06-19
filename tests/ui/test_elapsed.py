@@ -33,13 +33,9 @@ def test_elapsed_zero(ui_page):
 
 
 def test_negative_elapsed_future_timestamp(ui_page):
-    """Timestamp in the future: documents current (quirky) behavior."""
-    # clock=0, timestamp=100 → elapsed = -100
-    # JS: Math.floor(-100/60)=-2, (-100)%60=-40
+    """Timestamp in the future: elapsed is clamped to 00:00."""
     inject_rows(ui_page, [{"kart": "kart 1", "timestamp": 100}])
     ui_page.evaluate("updateElapsedTimes()")
 
     td = ui_page.locator("#kartTable tbody td[data-timestamp]")
-    text = td.inner_text()
-    # Negative elapsed produces a string with a minus sign.
-    assert "-" in text, f"Expected negative indicator, got: {text}"
+    assert td.inner_text() == "00:00"
